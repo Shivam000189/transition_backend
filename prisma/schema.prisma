@@ -1,27 +1,108 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
+enum AccountStatus {
+  ACTIVE
+  FROZEN
+  CLOSED
+}
 
+enum LedgerType {
+  DEBIT
+  CREDIT
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REVERSED
+}
 
 model User {
   id         Int      @id @default(autoincrement())
-
   email      String   @unique
   name       String
   password   String
   systemUser Boolean  @default(false)
-
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  accounts          Account[]
+  blacklistedTokens TokenBlacklist[]
+}
+
+model Account {
+  id        Int           @id @default(autoincrement())
+  userId    Int
+  status    AccountStatus @default(ACTIVE)
+  currency  String        @default("INR")
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  user      User          @relation(fields: [userId], references: [id])
+  ledgers   Ledger[]
+  sentTransactions     Transaction[] @relation("TransactionFromAccount")
+  receivedTransactions Transaction[] @relation("TransactionToAccount")
+
+  @@index([userId, status])
+}
+
+model Ledger {
+  id          Int        @id @default(autoincrement())
+  accountId   Int
+  transactionId Int
+  type        LedgerType
+  amount      Decimal    @db.Decimal(18, 2)
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  account     Account    @relation(fields: [accountId], references: [id])
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+
+  @@index([accountId])
+  @@index([accountId, type])
+  @@index([transactionId])
+}
+
+model Transaction {
+  id             Int               @id @default(autoincrement())
+  fromAccountId  Int
+  toAccountId    Int
+  amount         Decimal           @db.Decimal(18, 2)
+  idempotencyKey String            @unique
+  status         TransactionStatus @default(PENDING)
+  description    String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  fromAccount Account @relation("TransactionFromAccount", fields: [fromAccountId], references: [id])
+  toAccount   Account @relation("TransactionToAccount", fields: [toAccountId], references: [id])
+  ledgers     Ledger[]
+
+  @@index([fromAccountId])
+  @@index([toAccountId])
+  @@index([status])
+}
+
+model TokenBlacklist {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
 }

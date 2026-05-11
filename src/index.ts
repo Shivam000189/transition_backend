@@ -1,14 +1,10 @@
-import express, { Request, Response } from "express";
-import dotenv from "dotenv";
-import prisma from "./db/db.config";
+import { env } from "./db/env";
 
-const app = express();
-const PORT = 3000;
 
-app.get("/", (req: Request, res: Response) => {
-  res.send("Hello from TypeScript backend!");
+import app from "./app";
+const PORT = env.port || 3000;
+
+const server = app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
