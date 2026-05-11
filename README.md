@@ -58,7 +58,7 @@ Create a `.env` file in the project root.
 Example:
 
 ```env
-DATABASE_URL="postgresql://postgres:1234@localhost:5432/bank_backend?schema=public"
+DATABASE_URL="postgresql://postgres:password@localhost:5432/bank_backend?schema=public"
 MY_SECRET_KEY="my_secret_key"
 PORT=5000
 ```
